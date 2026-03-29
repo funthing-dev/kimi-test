@@ -1,14 +1,13 @@
 // ============================================
-// STARSHIP BRIDGE - Immersive Cosmic Journey
-// Captain's view with targeting, depth, and momentum
+// INTO THE COSMOS - Journey to the Galactic Core
 // ============================================
 
 let scene, camera, renderer;
 let starLayers = [];
 let nebulaClouds = [];
 let galaxyClusters = [];
-let filaments = [];
 let spaceDust = [];
+let centralCore;
 let warpLines;
 let mouseX = 0, mouseY = 0;
 let targetRotationX = 0, targetRotationY = 0;
@@ -16,24 +15,20 @@ let isDragging = false;
 let previousMouseX = 0, previousMouseY = 0;
 let speed = 0;
 let targetSpeed = 0;
-let velocity = { x: 0, y: 0, z: 0 };
-let cameraZ = 0;
+let cameraZ = -5000;
 let warpIntensity = 0;
 let nearestCluster = null;
-let approachScale = 1;
+let journeyProgress = 0;
 
 const keys = {};
 
 const CONFIG = {
-    layers: 3,
-    starsPerLayer: 8000,
-    maxSpeed: 150,
-    warpThreshold: 30,
-    nebulaCount: 12,
-    clusterCount: 15, // Reduced for closer spacing
-    filamentCount: 30,
-    voidCount: 3,
-    universeSize: 8000, // Reduced from 20000 for better approachability
+    layers: 4,
+    starsPerLayer: 80000,
+    maxSpeed: 250,
+    nebulaCount: 20,
+    clusterCount: 15,
+    universeSize: 5000,
     colors: {
         cyan: 0x00d4ff,
         blue: 0x0066ff,
@@ -48,20 +43,16 @@ const CONFIG = {
     }
 };
 
-// Cosmic Web Structure Data
-let cosmicStructure = {
-    clusters: [],
-    filaments: [],
-    voids: []
-};
+let cosmicStructure = { clusters: [] };
 
 function init() {
     scene = new THREE.Scene();
-    // Reduced fog for better visibility
-    scene.fog = new THREE.FogExp2(0x000000, 0.00003);
+    scene.fog = new THREE.FogExp2(0x000000, 0.000015);
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 15000);
-    camera.position.z = 0;
+    camera = new THREE.PerspectiveCamera(85, window.innerWidth / window.innerHeight, 0.1, 15000);
+    camera.position.z = cameraZ;
+    camera.position.y = 0;
+    camera.position.x = 0;
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -70,8 +61,8 @@ function init() {
     document.getElementById('canvas-container').appendChild(renderer.domElement);
 
     generateCosmicStructure();
-    createCosmicWebStarfield();
-    createFilamentConnections();
+    createCentralCore();
+    createMassiveStarfield();
     createNebulaClouds();
     createGalaxyClusters();
     createSpaceDust();
@@ -81,71 +72,72 @@ function init() {
     animate();
 }
 
-// ============================================
-// Generate Cosmic Structure - Smaller Scale
-// ============================================
-
 function generateCosmicStructure() {
-    const universeSize = CONFIG.universeSize;
-    
-    // Generate Galaxy Clusters (Nodes) - Closer together
     for (let i = 0; i < CONFIG.clusterCount; i++) {
+        const t = i / CONFIG.clusterCount;
+        const distanceFromCenter = 500 + t * CONFIG.universeSize * 0.8;
+        const angle = t * Math.PI * 6;
+        
         cosmicStructure.clusters.push({
             id: i,
-            name: generateClusterName(i),
-            x: (Math.random() - 0.5) * universeSize * 0.8,
-            y: (Math.random() - 0.5) * universeSize * 0.5,
-            z: -Math.random() * universeSize * 0.8 - 1000,
-            radius: 150 + Math.random() * 250,
-            density: 0.8 + Math.random() * 0.2,
-            mass: Math.random(),
-            type: ['Spiral', 'Elliptical', 'Irregular'][Math.floor(Math.random() * 3)]
+            name: `CLUSTER-${String.fromCharCode(65 + i % 26)}${Math.floor(i / 26) || ''}`,
+            x: Math.cos(angle) * distanceFromCenter * 0.6,
+            y: Math.sin(angle) * distanceFromCenter * 0.4,
+            z: -distanceFromCenter,
+            radius: 300 + Math.random() * 400,
+            mass: 0.5 + Math.random() * 0.5
         });
     }
+}
+
+function createCentralCore() {
+    const count = 8000;
+    const geometry = new THREE.BufferGeometry();
+    const positions = [];
+    const colors = [];
+    const sizes = [];
     
-    // Generate Voids (Empty regions) - Smaller impact
-    for (let i = 0; i < CONFIG.voidCount; i++) {
-        cosmicStructure.voids.push({
-            x: (Math.random() - 0.5) * universeSize,
-            y: (Math.random() - 0.5) * universeSize * 0.6,
-            z: -Math.random() * universeSize - 1000,
-            radius: 400 + Math.random() * 600
-        });
-    }
-    
-    // Generate Filaments (Connections between clusters)
-    for (let i = 0; i < cosmicStructure.clusters.length; i++) {
-        const cluster = cosmicStructure.clusters[i];
-        const connections = 2 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.pow(Math.random(), 0.5) * 1000;
+        const height = (Math.random() - 0.5) * 150;
         
-        for (let j = 1; j <= connections; j++) {
-            const targetIdx = (i + j) % cosmicStructure.clusters.length;
-            const target = cosmicStructure.clusters[targetIdx];
-            
-            cosmicStructure.filaments.push({
-                start: cluster,
-                end: target,
-                thickness: 30 + Math.random() * 50,
-                density: 0.5 + Math.random() * 0.3
-            });
-        }
+        positions.push(
+            Math.cos(angle) * radius,
+            height + Math.sin(angle) * radius * 0.1,
+            Math.sin(angle) * radius * 0.05
+        );
+        
+        const distRatio = radius / 1000;
+        const color = new THREE.Color();
+        if (distRatio < 0.2) color.setHex(0xffffff);
+        else if (distRatio < 0.5) color.setHex(CONFIG.colors.gold);
+        else color.setHex(CONFIG.colors.orange);
+        
+        colors.push(color.r, color.g, color.b);
+        sizes.push((1 - distRatio) * 25 + 8);
     }
+    
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+    
+    const texture = createParticleTexture();
+    const material = new THREE.PointsMaterial({
+        size: 20,
+        vertexColors: true,
+        map: texture,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        transparent: true,
+        opacity: 1
+    });
+    
+    centralCore = new THREE.Points(geometry, material);
+    scene.add(centralCore);
 }
 
-function generateClusterName(index) {
-    const prefixes = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta'];
-    const suffixes = ['Prime', 'Major', 'Minor', 'Nebula', 'Cluster', 'System', 'Hub'];
-    const prefix = prefixes[index % prefixes.length];
-    const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
-    const num = Math.floor(index / prefixes.length) + 1;
-    return `${prefix}-${num} ${suffix}`;
-}
-
-// ============================================
-// Cosmic Web Starfield with Approach Effect
-// ============================================
-
-function createCosmicWebStarfield() {
+function createMassiveStarfield() {
     for (let layer = 0; layer < CONFIG.layers; layer++) {
         const scale = Math.pow(2, layer);
         const count = CONFIG.starsPerLayer;
@@ -154,262 +146,127 @@ function createCosmicWebStarfield() {
         const positions = [];
         const colors = [];
         const sizes = [];
-        const originalSizes = [];
-        const clusterIds = [];
-        const color = new THREE.Color();
         
-        let starsCreated = 0;
-        
-        while (starsCreated < count) {
-            const universeSize = CONFIG.universeSize * scale;
-            let x = (Math.random() - 0.5) * universeSize;
-            let y = (Math.random() - 0.5) * universeSize * 0.6;
-            let z = -Math.random() * universeSize - 500 * scale;
+        for (let i = 0; i < count; i++) {
+            let x, y, z, r, g, b, size;
             
-            let density = 0.5;
-            let nearestDist = Infinity;
-            let nearestId = -1;
+            const rand = Math.random();
             
-            // Check proximity to clusters
-            for (let i = 0; i < cosmicStructure.clusters.length; i++) {
-                const cluster = cosmicStructure.clusters[i];
-                const dx = x - cluster.x * scale;
-                const dy = y - cluster.y * scale;
-                const dz = z - cluster.z * scale;
-                const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            if (rand < 0.3 && i < 20000) {
+                // Cluster stars
+                const clusterIdx = Math.floor(Math.random() * cosmicStructure.clusters.length);
+                const cluster = cosmicStructure.clusters[clusterIdx];
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(Math.random() * 2 - 1);
+                const radius = Math.pow(Math.random(), 0.4) * cluster.radius * scale;
                 
-                if (dist < cluster.radius * scale) {
-                    const normalizedDist = dist / (cluster.radius * scale);
-                    density += cluster.density * (1 - normalizedDist) * 4;
-                }
+                x = cluster.x * scale + radius * Math.sin(phi) * Math.cos(theta);
+                y = cluster.y * scale + radius * Math.sin(phi) * Math.sin(theta);
+                z = cluster.z * scale + radius * Math.cos(phi);
                 
-                if (dist < nearestDist) {
-                    nearestDist = dist;
-                    nearestId = i;
-                }
+                const colorType = Math.random();
+                if (colorType < 0.4) { r = 1; g = 1; b = 1; }
+                else if (colorType < 0.7) { r = 0; g = 0.8; b = 1; }
+                else { r = 0.8; g = 0.9; b = 1; }
+                size = 4 + Math.random() * 4;
+            } else if (rand < 0.5) {
+                // Filament stars
+                const cluster1 = cosmicStructure.clusters[Math.floor(Math.random() * cosmicStructure.clusters.length)];
+                const cluster2 = cosmicStructure.clusters[Math.floor(Math.random() * cosmicStructure.clusters.length)];
+                const t = Math.random();
+                const spread = 100 * scale * (Math.random() - 0.5);
+                
+                x = (cluster1.x * scale * (1-t) + cluster2.x * scale * t) + spread;
+                y = (cluster1.y * scale * (1-t) + cluster2.y * scale * t) + spread * 0.5;
+                z = (cluster1.z * scale * (1-t) + cluster2.z * scale * t) + spread * 0.5;
+                
+                const colorType = Math.random();
+                if (colorType < 0.4) { r = 0.3; g = 0.5; b = 1; }
+                else if (colorType < 0.7) { r = 0.5; g = 0.3; b = 1; }
+                else { r = 0.8; g = 0.2; b = 0.6; }
+                size = 2.5 + Math.random() * 2;
+            } else {
+                // Field stars
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(Math.random() * 2 - 1);
+                const radius = Math.pow(Math.random(), 0.8) * CONFIG.universeSize * scale;
+                
+                x = radius * Math.sin(phi) * Math.cos(theta) * 0.8;
+                y = radius * Math.sin(phi) * Math.sin(theta) * 0.6;
+                z = -radius + Math.random() * 1000;
+                
+                const colorType = Math.random();
+                const distRatio = radius / (CONFIG.universeSize * scale);
+                
+                if (distRatio < 0.3) {
+                    r = 1; g = 0.6 + Math.random() * 0.4; b = 0.3;
+                } else if (colorType < 0.25) { r = 1; g = 1; b = 1; }
+                else if (colorType < 0.5) { r = 0.8; g = 0.9; b = 1; }
+                else if (colorType < 0.75) { r = 0.5; g = 0.7; b = 1; }
+                else { r = 1; g = 0.8; b = 0.4; }
+                
+                size = 1.5 + Math.random() * 2 + (1 - distRatio) * 2;
             }
-            
-            // Check filaments
-            for (const filament of cosmicStructure.filaments) {
-                const startX = filament.start.x * scale;
-                const startY = filament.start.y * scale;
-                const startZ = filament.start.z * scale;
-                const endX = filament.end.x * scale;
-                const endY = filament.end.y * scale;
-                const endZ = filament.end.z * scale;
-                
-                const distToFilament = distanceToLineSegment(x, y, z, startX, startY, startZ, endX, endY, endZ);
-                
-                if (distToFilament < filament.thickness * scale) {
-                    const normalizedDist = distToFilament / (filament.thickness * scale);
-                    density += filament.density * (1 - normalizedDist) * 2;
-                }
-            }
-            
-            // Check voids
-            for (const voidRegion of cosmicStructure.voids) {
-                const dx = x - voidRegion.x * scale;
-                const dy = y - voidRegion.y * scale;
-                const dz = z - voidRegion.z * scale;
-                const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-                
-                if (dist < voidRegion.radius * scale) {
-                    const normalizedDist = dist / (voidRegion.radius * scale);
-                    density *= 0.5 + normalizedDist * 0.4;
-                }
-            }
-            
-            if (Math.random() > density * 0.8) continue;
-            
-            x += (Math.random() - 0.5) * 50 * scale;
-            y += (Math.random() - 0.5) * 50 * scale;
-            z += (Math.random() - 0.5) * 50 * scale;
             
             positions.push(x, y, z);
-            
-            // Color based on density and cluster
-            const cluster = cosmicStructure.clusters[nearestId];
-            const temp = Math.random();
-            
-            if (density > 2.5) {
-                // Core stars - hot colors
-                if (temp < 0.5) color.setHex(CONFIG.colors.white);
-                else if (temp < 0.8) color.setHex(CONFIG.colors.gold);
-                else color.setHex(CONFIG.colors.cyan);
-            } else if (density > 1.2) {
-                // Medium density
-                if (cluster.type === 'Spiral') color.setHex(CONFIG.colors.blue);
-                else if (cluster.type === 'Elliptical') color.setHex(CONFIG.colors.gold);
-                else color.setHex(CONFIG.colors.purple);
-            } else {
-                // Low density - cool colors
-                color.setHex(Math.random() > 0.5 ? CONFIG.colors.violet : 0x4466aa);
-            }
-            
-            const variation = (Math.random() - 0.5) * 0.3;
-            colors.push(
-                Math.max(0, Math.min(1, color.r + variation)),
-                Math.max(0, Math.min(1, color.g + variation)),
-                Math.max(0, Math.min(1, color.b + variation))
-            );
-            
-            // Size based on density and layer
-            const baseSize = (3 - layer) * 1.2 + 0.5;
-            const densityBoost = Math.min(density * 0.4, 3);
-            const size = baseSize + densityBoost + Math.random() * 0.5;
+            colors.push(r, g, b);
             sizes.push(size);
-            originalSizes.push(size);
-            clusterIds.push(nearestId);
-            
-            starsCreated++;
         }
         
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
         geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
         geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
         
-        const canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
-        const ctx = canvas.getContext('2d');
-        const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-        grad.addColorStop(0, 'rgba(255,255,255,1)');
-        grad.addColorStop(0.15, 'rgba(255,255,255,0.9)');
-        grad.addColorStop(0.4, 'rgba(255,255,255,0.5)');
-        grad.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 64, 64);
-        
+        const texture = createParticleTexture();
         const material = new THREE.PointsMaterial({
-            size: 4,
+            size: 3,
             vertexColors: true,
-            map: new THREE.CanvasTexture(canvas),
+            map: texture,
             blending: THREE.AdditiveBlending,
             depthWrite: false,
             transparent: true,
-            opacity: 0.95 - layer * 0.2
+            opacity: 0.9 - layer * 0.15
         });
         
         const stars = new THREE.Points(geometry, material);
-        stars.userData = { 
-            layer: layer, 
-            scale: scale,
-            originalSizes: originalSizes,
-            clusterIds: clusterIds
-        };
+        stars.userData = { layer: layer, scale: scale };
         scene.add(stars);
         starLayers.push(stars);
     }
 }
 
-function distanceToLineSegment(px, py, pz, x1, y1, z1, x2, y2, z2) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const dz = z2 - z1;
-    
-    const len = Math.sqrt(dx*dx + dy*dy + dz*dz);
-    if (len === 0) return Math.sqrt((px-x1)**2 + (py-y1)**2 + (pz-z1)**2);
-    
-    const t = Math.max(0, Math.min(1, ((px-x1)*dx + (py-y1)*dy + (pz-z1)*dz) / (len*len)));
-    
-    const projX = x1 + t * dx;
-    const projY = y1 + t * dy;
-    const projZ = z1 + t * dz;
-    
-    return Math.sqrt((px-projX)**2 + (py-projY)**2 + (pz-projZ)**2);
-}
-
-// ============================================
-// Filament Connections
-// ============================================
-
-function createFilamentConnections() {
-    const lineMaterial = new THREE.LineBasicMaterial({
-        color: 0x4488cc,
-        transparent: true,
-        opacity: 0.2,
-        blending: THREE.AdditiveBlending
-    });
-    
-    for (let layer = 0; layer < 2; layer++) {
-        const scale = Math.pow(2, layer);
-        const lineGeometry = new THREE.BufferGeometry();
-        const linePositions = [];
-        
-        for (const filament of cosmicStructure.filaments) {
-            const startX = filament.start.x * scale;
-            const startY = filament.start.y * scale;
-            const startZ = filament.start.z * scale;
-            const endX = filament.end.x * scale;
-            const endY = filament.end.y * scale;
-            const endZ = filament.end.z * scale;
-            
-            const segments = 8;
-            for (let i = 0; i < segments; i++) {
-                const t1 = i / segments;
-                const t2 = (i + 1) / segments;
-                
-                const curve = Math.sin(t1 * Math.PI) * 50 * scale;
-                
-                const x1 = startX + (endX - startX) * t1 + curve;
-                const y1 = startY + (endY - startY) * t1 + curve * 0.3;
-                const z1 = startZ + (endZ - startZ) * t1;
-                
-                const x2 = startX + (endX - startX) * t2 + curve;
-                const y2 = startY + (endY - startY) * t2 + curve * 0.3;
-                const z2 = startZ + (endZ - startZ) * t2;
-                
-                linePositions.push(x1, y1, z1, x2, y2, z2);
-            }
-        }
-        
-        lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
-        
-        const lines = new THREE.LineSegments(lineGeometry, lineMaterial.clone());
-        lines.material.opacity = 0.25 - layer * 0.1;
-        scene.add(lines);
-        filaments.push(lines);
-    }
-}
-
-// ============================================
-// Enhanced Nebula Clouds
-// ============================================
-
 function createNebulaClouds() {
-    for (const cluster of cosmicStructure.clusters) {
-        if (Math.random() > 0.7) continue;
-        
+    for (let i = 0; i < CONFIG.nebulaCount; i++) {
         const geometry = new THREE.BufferGeometry();
         const positions = [];
         const colors = [];
         const sizes = [];
+        
+        const cluster = cosmicStructure.clusters[i % cosmicStructure.clusters.length];
         const color = new THREE.Color();
+        const hue = Math.random();
+        color.setHSL(hue, 0.8, 0.5);
         
-        const nebulaTypes = [CONFIG.colors.purple, CONFIG.colors.pink, CONFIG.colors.cyan, CONFIG.colors.blue];
-        color.setHex(nebulaTypes[Math.floor(Math.random() * nebulaTypes.length)]);
-        
-        const particleCount = 600;
-        
-        for (let i = 0; i < particleCount; i++) {
+        const count = 500;
+        for (let j = 0; j < count; j++) {
             const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos((Math.random() * 2) - 1);
-            const radius = Math.pow(Math.random(), 0.4) * cluster.radius * 2.5;
+            const phi = Math.acos(Math.random() * 2 - 1);
+            const radius = Math.pow(Math.random(), 0.5) * cluster.radius * 2.5;
             
-            const x = cluster.x + radius * Math.sin(phi) * Math.cos(theta);
-            const y = cluster.y + radius * Math.sin(phi) * Math.sin(theta) * 0.4;
-            const z = cluster.z + radius * Math.cos(phi) * 0.7;
-            
-            positions.push(x, y, z);
-            
-            const variation = (Math.random() - 0.5) * 0.4;
-            colors.push(
-                Math.max(0, Math.min(1, color.r + variation)),
-                Math.max(0, Math.min(1, color.g + variation)),
-                Math.max(0, Math.min(1, color.b + variation))
+            positions.push(
+                cluster.x + radius * Math.sin(phi) * Math.cos(theta),
+                cluster.y + radius * Math.sin(phi) * Math.sin(theta) * 0.4,
+                cluster.z + radius * Math.cos(phi) * 0.8
             );
             
-            sizes.push(Math.random() * 60 + 25);
+            const variation = (Math.random() - 0.5) * 0.3;
+            colors.push(
+                Math.max(0, color.r + variation),
+                Math.max(0, color.g + variation),
+                Math.max(0, color.b + variation)
+            );
+            
+            sizes.push(50 + Math.random() * 100);
         }
         
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -421,128 +278,102 @@ function createNebulaClouds() {
         canvas.height = 128;
         const ctx = canvas.getContext('2d');
         const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-        grad.addColorStop(0, 'rgba(255,255,255,0.5)');
-        grad.addColorStop(0.4, 'rgba(255,255,255,0.2)');
+        grad.addColorStop(0, 'rgba(255,255,255,0.4)');
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.1)');
         grad.addColorStop(1, 'rgba(255,255,255,0)');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, 128, 128);
         
         const material = new THREE.PointsMaterial({
-            size: 70,
+            size: 100,
             vertexColors: true,
             map: new THREE.CanvasTexture(canvas),
             blending: THREE.AdditiveBlending,
             depthWrite: false,
             transparent: true,
-            opacity: 0.6
+            opacity: 0.5
         });
         
         const nebula = new THREE.Points(geometry, material);
-        nebula.userData = {
-            centerZ: cluster.z,
-            clusterId: cluster.id,
-            rotationSpeed: (Math.random() - 0.5) * 0.0002
-        };
-        
+        nebula.userData = { centerZ: cluster.z, rotationSpeed: (Math.random() - 0.5) * 0.0003 };
         scene.add(nebula);
         nebulaClouds.push(nebula);
     }
 }
 
-// ============================================
-// Galaxy Cluster Cores - Bright Centers
-// ============================================
-
 function createGalaxyClusters() {
     for (const cluster of cosmicStructure.clusters) {
-        const coreGeometry = new THREE.BufferGeometry();
-        const corePositions = [];
-        const coreColors = [];
-        const coreSizes = [];
+        const geometry = new THREE.BufferGeometry();
+        const positions = [];
+        const colors = [];
+        const sizes = [];
         
-        const coreCount = 300;
-        
-        for (let i = 0; i < coreCount; i++) {
+        const count = 300;
+        for (let i = 0; i < count; i++) {
             const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos((Math.random() * 2) - 1);
-            const radius = Math.pow(Math.random(), 2) * cluster.radius * 0.4;
+            const phi = Math.acos(Math.random() * 2 - 1);
+            const radius = Math.pow(Math.random(), 2) * cluster.radius * 0.6;
             
-            const x = cluster.x + radius * Math.sin(phi) * Math.cos(theta);
-            const y = cluster.y + radius * Math.sin(phi) * Math.sin(theta);
-            const z = cluster.z + radius * Math.cos(phi);
+            positions.push(
+                cluster.x + radius * Math.sin(phi) * Math.cos(theta),
+                cluster.y + radius * Math.sin(phi) * Math.sin(theta),
+                cluster.z + radius * Math.cos(phi)
+            );
             
-            corePositions.push(x, y, z);
+            const colorType = Math.random();
+            if (colorType > 0.5) {
+                colors.push(1, 1, 1);
+            } else if (colorType > 0.25) {
+                colors.push(1, 0.9, 0.5);
+            } else {
+                colors.push(0.5, 0.9, 1);
+            }
             
-            const color = new THREE.Color();
-            if (Math.random() > 0.4) color.setHex(CONFIG.colors.white);
-            else if (Math.random() > 0.5) color.setHex(CONFIG.colors.gold);
-            else color.setHex(CONFIG.colors.cyan);
-            
-            coreColors.push(color.r, color.g, color.b);
-            coreSizes.push(Math.random() * 10 + 5);
+            sizes.push(Math.random() * 15 + 8);
         }
         
-        coreGeometry.setAttribute('position', new THREE.Float32BufferAttribute(corePositions, 3));
-        coreGeometry.setAttribute('color', new THREE.Float32BufferAttribute(coreColors, 3));
-        coreGeometry.setAttribute('size', new THREE.Float32BufferAttribute(coreSizes, 1));
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
         
-        const canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
-        const ctx = canvas.getContext('2d');
-        const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-        grad.addColorStop(0, 'rgba(255,255,255,1)');
-        grad.addColorStop(0.2, 'rgba(255,255,200,0.7)');
-        grad.addColorStop(0.5, 'rgba(255,255,255,0.3)');
-        grad.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 64, 64);
-        
-        const coreMaterial = new THREE.PointsMaterial({
-            size: 10,
+        const material = new THREE.PointsMaterial({
+            size: 15,
             vertexColors: true,
-            map: new THREE.CanvasTexture(canvas),
+            map: createParticleTexture(),
             blending: THREE.AdditiveBlending,
             depthWrite: false,
             transparent: true,
             opacity: 1
         });
         
-        const core = new THREE.Points(coreGeometry, coreMaterial);
-        core.userData = { clusterId: cluster.id };
+        const core = new THREE.Points(geometry, material);
         scene.add(core);
         galaxyClusters.push(core);
     }
 }
-
-// ============================================
-// Space Dust - Speed sensation particles
-// ============================================
 
 function createSpaceDust() {
     const geometry = new THREE.BufferGeometry();
     const positions = [];
     const velocities = [];
     
-    const count = 500;
-    
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < 1000; i++) {
         positions.push(
-            (Math.random() - 0.5) * 2000,
-            (Math.random() - 0.5) * 2000,
-            -Math.random() * 5000
+            (Math.random() - 0.5) * 4000,
+            (Math.random() - 0.5) * 4000,
+            Math.random() * 8000 - 8000
         );
         velocities.push(
             (Math.random() - 0.5) * 2,
             (Math.random() - 0.5) * 2,
-            -50 - Math.random() * 100
+            100 + Math.random() * 200
         );
     }
     
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     
     const material = new THREE.PointsMaterial({
-        color: 0x88aaff,
+        color: 0xaaddff,
         size: 2,
         transparent: true,
         opacity: 0.6,
@@ -555,25 +386,22 @@ function createSpaceDust() {
     spaceDust.push(dust);
 }
 
-// ============================================
-// Warp Lines
-// ============================================
-
 function createWarpLines() {
-    const lineCount = 200;
+    const count = 500;
     const geometry = new THREE.BufferGeometry();
     const positions = [];
     const originalPositions = [];
     
-    for (let i = 0; i < lineCount; i++) {
-        const x = (Math.random() - 0.5) * 2000;
-        const y = (Math.random() - 0.5) * 2000;
-        const z = -Math.random() * 10000;
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.pow(Math.random(), 0.5) * 2000;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius * 0.6;
+        const z = Math.random() * 10000 - 10000;
+        const length = 100 + Math.random() * 300;
         
-        const length = 50 + Math.random() * 150;
-        
-        positions.push(x, y, z, x, y, z - length);
-        originalPositions.push(x, y, z, x, y, z - length);
+        positions.push(x, y, z, x, y, z + length);
+        originalPositions.push(x, y, z, x, y, z + length);
     }
     
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -581,7 +409,7 @@ function createWarpLines() {
     const material = new THREE.LineBasicMaterial({
         color: 0x00d4ff,
         transparent: true,
-        opacity: 0.1,
+        opacity: 0.15,
         blending: THREE.AdditiveBlending
     });
     
@@ -590,9 +418,20 @@ function createWarpLines() {
     scene.add(warpLines);
 }
 
-// ============================================
-// Find Nearest Cluster for Targeting
-// ============================================
+function createParticleTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.2, 'rgba(255,255,255,0.8)');
+    grad.addColorStop(0.5, 'rgba(255,255,255,0.3)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+    return new THREE.CanvasTexture(canvas);
+}
 
 function findNearestCluster() {
     let nearest = null;
@@ -604,7 +443,7 @@ function findNearestCluster() {
         const dz = cluster.z - cameraZ;
         const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
         
-        if (dist < minDist) {
+        if (dist < minDist && dist < 4000) {
             minDist = dist;
             nearest = { ...cluster, distance: dist };
         }
@@ -612,10 +451,6 @@ function findNearestCluster() {
     
     return nearest;
 }
-
-// ============================================
-// Event Handling
-// ============================================
 
 function setupEvents() {
     document.addEventListener('mousemove', onMouseMove);
@@ -632,12 +467,8 @@ function onMouseMove(event) {
     mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
     
     if (isDragging) {
-        const deltaX = event.clientX - previousMouseX;
-        const deltaY = event.clientY - previousMouseY;
-        
-        targetRotationY += deltaX * 0.005;
-        targetRotationX += deltaY * 0.005;
-        
+        targetRotationY += (event.clientX - previousMouseX) * 0.005;
+        targetRotationX += (event.clientY - previousMouseY) * 0.005;
         previousMouseX = event.clientX;
         previousMouseY = event.clientY;
     }
@@ -649,14 +480,19 @@ function onMouseDown(event) {
     previousMouseY = event.clientY;
 }
 
-function onMouseUp() {
-    isDragging = false;
-}
+function onMouseUp() { isDragging = false; }
 
 function onWheel(event) {
     const boost = keys['shift'] ? 3 : 1;
-    targetSpeed += event.deltaY * 0.03 * boost;
-    targetSpeed = Math.max(0, Math.min(CONFIG.maxSpeed, targetSpeed));
+    // 휠 위로 (deltaY < 0): 중심으로 이동 (z 증가)
+    // 휠 아래로 (deltaY > 0): 뒤로 이동 (z 감소)
+    const moveAmount = -event.deltaY * 2 * boost;
+    cameraZ += moveAmount;
+    cameraZ = Math.max(-6000, Math.min(800, cameraZ));
+    
+    // 속도도 약간 변화시켜 워프 효과
+    targetSpeed = Math.abs(moveAmount) * 0.5;
+    targetSpeed = Math.min(CONFIG.maxSpeed, targetSpeed);
 }
 
 function onResize() {
@@ -665,62 +501,64 @@ function onResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-// ============================================
-// Animation Loop
-// ============================================
-
 function animate() {
     requestAnimationFrame(animate);
     
     const delta = 0.016;
     
-    // Smooth speed transition
+    // Smooth speed
     speed += (targetSpeed - speed) * 0.05;
-    
-    // Calculate warp intensity
     const normalizedSpeed = speed / CONFIG.maxSpeed;
     warpIntensity += (normalizedSpeed - warpIntensity) * 0.1;
     
-    // Camera movement with momentum
-    const boost = keys['shift'] ? 2.5 : 1;
-    const moveSpeed = speed * 20 * boost * delta;
+    // Camera movement - FORWARD toward center (increasing z)
+    const boost = keys['shift'] ? 3 : 1;
+    const keyMoveSpeed = 80 * boost * delta;
     
-    if (keys['w']) cameraZ -= moveSpeed * 2;
-    if (keys['s']) cameraZ += moveSpeed;
-    cameraZ -= moveSpeed * 0.5;
+    // W: 중심으로 전진 (z 증가), S: 뒤로 후진 (z 감소)
+    if (keys['w'] || keys['arrowup']) {
+        cameraZ += keyMoveSpeed * 2.5;
+        targetSpeed = Math.min(CONFIG.maxSpeed, targetSpeed + 2);
+    }
+    if (keys['s'] || keys['arrowdown']) {
+        cameraZ -= keyMoveSpeed;
+        targetSpeed = Math.min(CONFIG.maxSpeed, targetSpeed + 1);
+    }
     
-    // Smooth rotation
+    // 자동 감속
+    targetSpeed *= 0.98;
+    
+    cameraZ = Math.max(-6000, Math.min(800, cameraZ));
+    
+    cameraZ = Math.max(-6000, Math.min(800, cameraZ));
+    journeyProgress = (cameraZ + 6000) / 6800;
+    
+    // Camera rotation
     camera.rotation.x += (targetRotationX - camera.rotation.x) * 0.05;
     camera.rotation.y += (targetRotationY - camera.rotation.y) * 0.05;
-    
-    // Apply camera position
     camera.position.z = cameraZ;
     
-    // Dynamic FOV based on speed
-    const targetFOV = 75 + warpIntensity * 35;
-    camera.fov += (targetFOV - camera.fov) * 0.05;
+    // Dynamic FOV
+    camera.fov += ((85 + warpIntensity * 30) - camera.fov) * 0.05;
     camera.updateProjectionMatrix();
     
-    // Update star layers with approach scaling
+    // Rotate central core
+    if (centralCore) {
+        centralCore.rotation.z += 0.0008;
+        centralCore.rotation.y += 0.0003;
+    }
+    
+    // Update star layers
     starLayers.forEach((layer, index) => {
-        const scale = layer.userData.scale;
-        
-        layer.position.x = camera.position.x * 0.1 * scale;
-        layer.position.y = camera.position.y * 0.1 * scale;
-        
-        const wrapDistance = CONFIG.universeSize * scale;
-        if (cameraZ < layer.position.z - wrapDistance / 2) {
-            layer.position.z -= wrapDistance;
-        }
-        
-        layer.rotation.z += 0.0001 * (index + 1);
+        layer.position.x = camera.position.x * 0.05 * layer.userData.scale;
+        layer.position.y = camera.position.y * 0.05 * layer.userData.scale;
+        layer.rotation.z += 0.00002 * (index + 1);
     });
     
     // Update nebulae
     nebulaClouds.forEach((nebula) => {
         nebula.rotation.z += nebula.userData.rotationSpeed;
-        const parallaxZ = (nebula.userData.centerZ - cameraZ) * 0.3;
-        nebula.position.z = Math.max(-3000, Math.min(500, parallaxZ));
+        nebula.position.z = (nebula.userData.centerZ - cameraZ) * 0.3;
     });
     
     // Update galaxy clusters
@@ -729,26 +567,25 @@ function animate() {
         cluster.rotation.z += 0.0001;
     });
     
-    // Update space dust
+    // Update space dust - moving toward camera
     spaceDust.forEach((dust) => {
         const positions = dust.geometry.attributes.position.array;
         const velocities = dust.userData.velocities;
         
         for (let i = 0; i < positions.length; i += 3) {
-            positions[i] += velocities[i] * speed * delta * 0.1;
-            positions[i+1] += velocities[i+1] * speed * delta * 0.1;
-            positions[i+2] += velocities[i+2] * speed * delta * 0.5;
+            positions[i] += velocities[i] * normalizedSpeed * delta * 0.1;
+            positions[i+1] += velocities[i+1] * normalizedSpeed * delta * 0.1;
+            positions[i+2] += velocities[i+2] * normalizedSpeed * delta * 0.5;
             
-            // Reset if behind camera
-            if (positions[i+2] > cameraZ + 500) {
-                positions[i] = camera.position.x + (Math.random() - 0.5) * 2000;
-                positions[i+1] = camera.position.y + (Math.random() - 0.5) * 2000;
-                positions[i+2] = cameraZ - 5000 - Math.random() * 2000;
+            if (positions[i+2] > cameraZ + 200) {
+                positions[i] = camera.position.x + (Math.random() - 0.5) * 4000;
+                positions[i+1] = camera.position.y + (Math.random() - 0.5) * 4000;
+                positions[i+2] = cameraZ - 6000 - Math.random() * 3000;
             }
         }
         
         dust.geometry.attributes.position.needsUpdate = true;
-        dust.material.opacity = 0.3 + warpIntensity * 0.5;
+        dust.material.opacity = 0.4 + warpIntensity * 0.5;
     });
     
     // Update warp lines
@@ -756,77 +593,71 @@ function animate() {
         const positions = warpLines.geometry.attributes.position.array;
         const originalPositions = warpLines.userData.originalPositions;
         
-        warpLines.material.opacity = 0.1 + warpIntensity * 0.5;
-        
-        const hue = 0.5 + warpIntensity * 0.15;
-        warpLines.material.color.setHSL(hue, 1, 0.5 + warpIntensity * 0.3);
+        warpLines.material.opacity = 0.1 + warpIntensity * 0.6;
+        warpLines.material.color.setHSL(0.55 + warpIntensity * 0.15, 1, 0.5 + warpIntensity * 0.3);
         
         for (let i = 0; i < positions.length; i += 6) {
             const stretch = 1 + warpIntensity * 15;
             const origZ = originalPositions[i + 2];
             const origLength = originalPositions[i + 5] - originalPositions[i + 2];
             
-            positions[i + 2] = origZ + cameraZ * 0.1;
-            positions[i + 5] = positions[i + 2] - origLength * stretch;
+            positions[i + 2] = origZ + (cameraZ + 6000) * 0.8;
+            positions[i + 5] = positions[i + 2] + origLength * stretch;
             
-            if (positions[i + 2] > cameraZ + 500) {
-                const offset = -10000 - Math.random() * 3000;
+            if (positions[i + 2] > cameraZ + 300) {
+                const offset = -10000 - Math.random() * 5000;
                 originalPositions[i + 2] = offset;
-                originalPositions[i + 5] = offset - (50 + Math.random() * 150);
+                originalPositions[i + 5] = offset + origLength;
             }
         }
         
         warpLines.geometry.attributes.position.needsUpdate = true;
     }
     
-    // Find nearest cluster
     nearestCluster = findNearestCluster();
-    
-    // Update UI
     updateHUD();
     
     renderer.render(scene, camera);
 }
 
 function updateHUD() {
-    const distance = Math.abs(cameraZ / 1000).toFixed(2);
+    const normalizedSpeed = speed / CONFIG.maxSpeed;
     const distanceEl = document.getElementById('distanceDisplay');
-    if (distanceEl) distanceEl.textContent = distance + ' LY';
+    if (distanceEl) distanceEl.textContent = (Math.abs(cameraZ / 1000)).toFixed(2) + ' LY';
     
-    const coordX = Math.round(camera.position.x);
-    const coordY = Math.round(camera.position.y);
-    const coordZ = Math.round(cameraZ);
     const coordsEl = document.getElementById('coordsDisplay');
-    if (coordsEl) coordsEl.textContent = `X:${coordX} Y:${coordY} Z:${coordZ}`;
+    if (coordsEl) coordsEl.textContent = `X:${Math.round(camera.position.x)} Y:${Math.round(camera.position.y)} Z:${Math.round(cameraZ)}`;
     
-    const warpFactor = (speed / CONFIG.maxSpeed * 9.9).toFixed(1);
     const speedValEl = document.getElementById('speedValue');
-    if (speedValEl) speedValEl.textContent = warpFactor;
+    if (speedValEl) speedValEl.textContent = (normalizedSpeed * 9.9).toFixed(1);
     
     const speedFill = document.getElementById('speedFill');
-    if (speedFill) {
-        speedFill.style.width = (warpIntensity * 100) + '%';
-    }
+    if (speedFill) speedFill.style.width = (warpIntensity * 100) + '%';
     
-    // Update targeting info
     const targetEl = document.getElementById('targetInfo');
-    if (targetEl && nearestCluster) {
-        const dist = (nearestCluster.distance / 100).toFixed(1);
-        targetEl.innerHTML = `
-            <div class="target-name">TARGET: ${nearestCluster.name}</div>
-            <div class="target-dist">DISTANCE: ${dist} AU</div>
-            <div class="target-type">TYPE: ${nearestCluster.type}</div>
-        `;
-        targetEl.style.opacity = '1';
+    if (targetEl) {
+        if (nearestCluster) {
+            targetEl.innerHTML = `
+                <div class="target-name">TARGET: ${nearestCluster.name}</div>
+                <div class="target-dist">DIST: ${(nearestCluster.distance / 100).toFixed(1)} AU</div>
+            `;
+            targetEl.style.opacity = '1';
+        } else if (journeyProgress > 0.85) {
+            targetEl.innerHTML = `
+                <div class="target-name" style="color:#ff6b35">GALACTIC CORE</div>
+                <div class="target-dist">DIST: ${(Math.abs(cameraZ)/100).toFixed(1)} AU</div>
+            `;
+            targetEl.style.opacity = '1';
+        } else {
+            targetEl.style.opacity = '0';
+        }
     }
     
-    // Update warp indicator
     const warpIndicator = document.getElementById('warpIndicator');
     if (warpIndicator) {
         warpIndicator.style.opacity = warpIntensity > 0.3 ? '1' : '0';
-        warpIndicator.style.transform = `scale(${1 + warpIntensity * 0.5})`;
+        warpIndicator.style.transform = `scale(${1 + warpIntensity * 0.8})`;
     }
 }
 
-// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', init);
