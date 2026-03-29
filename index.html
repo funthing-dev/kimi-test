@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WARP DRIVE - Interstellar Journey</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <!-- Visual Effects -->
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+    
+    <!-- Warp Indicator -->
+    <div class="warp-indicator" id="warpIndicator">
+        <div class="warp-text">WARP</div>
+    </div>
+    
+    <!-- Navigation Panel -->
+    <div class="nav-panel">
+        <div class="nav-item">
+            <div class="nav-label">Distance</div>
+            <div class="nav-value" id="distanceDisplay">0 LY</div>
+        </div>
+        <div class="nav-item">
+            <div class="nav-label">Coordinates</div>
+            <div class="coordinates" id="coordsDisplay">X:0 Y:0 Z:0</div>
+        </div>
+    </div>
+    
+    <!-- Main UI -->
+    <div class="ui-layer">
+        <div class="title">
+            <h1>WARP DRIVE</h1>
+            <p>SECTOR 1: Nebula Alpha</p>
+        </div>
+        
+        <div class="instructions">
+            <div class="instruction-item">
+                <span class="key">🖱️</span>
+                <span>드래그로 회전</span>
+            </div>
+            <div class="instruction-item">
+                <span class="key">📜</span>
+                <span>스크롤로 가속</span>
+            </div>
+            <div class="instruction-item">
+                <span class="key">⌨️</span>
+                <span>W/S 또는 방향키</span>
+            </div>
+            <div class="instruction-item">
+                <span class="key">⇧</span>
+                <span>부스트 (Shift)</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Speedometer -->
+    <div class="speedometer">
+        <div class="speed-bar">
+            <div class="speed-fill" id="speedFill"></div>
+        </div>
+        <div class="speed-label">Warp Factor</div>
+        <div class="speed-value" id="speedValue">0.0</div>
+    </div>
+
+    <!-- Targeting System -->
+    <div class="targeting-hud" id="targetInfo">
+        <div class="target-name">SCANNING...</div>
+        <div class="target-dist">--</div>
+        <div class="target-type">--</div>
+    </div>
+
+    <!-- Crosshair -->
+    <div class="crosshair">
+        <div class="crosshair-v"></div>
+        <div class="crosshair-h"></div>
+        <div class="crosshair-center"></div>
+    </div>
+
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
